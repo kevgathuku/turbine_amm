@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount},
 };
 
-use crate::{error::AmmError, Pool, MINT_LP_SEED, POOL_SEED};
+use crate::{error::AmmError, Pool, MINT_LP_SEED, POOL_SEED, MAX_FEE_BPS};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
@@ -62,6 +62,8 @@ impl<'info> Initialize<'info> {
         authority: Option<Pubkey>,
         bumps: InitializeBumps,
     ) -> Result<()> {
+        require!(fee <= MAX_FEE_BPS, AmmError::FeePercentErr);
+
         self.pool.set_inner(Pool {
             seed,
             authority,

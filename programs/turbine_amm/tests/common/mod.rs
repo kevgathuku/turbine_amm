@@ -6,22 +6,18 @@ use {
         solana_program::{instruction::Instruction, system_program},
         InstructionData, ToAccountMetas,
     },
-    anchor_spl::associated_token::{get_associated_token_address, ID as ATA_PROGRAM_ID},
-    anchor_spl::{associated_token, token::spl_token::state::Account as TokenAccount},
-    litesvm::LiteSVM,
-    litesvm_token::{
-        spl_token::ID as TOKEN_PROGRAM_ID, CreateAssociatedTokenAccount, CreateMint, MintTo,
+    anchor_spl::{
+        associated_token::{get_associated_token_address, ID as ATA_PROGRAM_ID},
+        token::spl_token::state::Account as TokenAccount,
     },
+    litesvm::LiteSVM,
+    litesvm_token::{spl_token::ID as TOKEN_PROGRAM_ID, CreateMint},
     solana_keypair::Keypair,
     solana_message::{Message, VersionedMessage},
     solana_program_pack::Pack,
     solana_signer::Signer,
     solana_transaction::versioned::VersionedTransaction,
-    turbine_amm::{
-        accounts,
-        constants::{MINT_LP_SEED, POOL_SEED},
-        Pool,
-    },
+    turbine_amm::constants::{MINT_LP_SEED, POOL_SEED},
 };
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
@@ -30,6 +26,7 @@ pub const SEED: u64 = 42;
 // Decimals for both mint tokens
 pub const DECIMALS: u8 = 6;
 
+#[allow(clippy::result_large_err)]
 pub fn send(
     svm: &mut LiteSVM,
     ixs: &[Instruction],
@@ -118,32 +115,27 @@ pub fn token_balance(svm: &LiteSVM, account: &Pubkey) -> u64 {
 
 pub fn create_initialize_tx(
     mut _svm: &mut LiteSVM,
-    payer: &Keypair,
-    mint_x: Pubkey,
-    mint_y: Pubkey,
-    pool: Pubkey,
-    mint_lp: Pubkey,
-    vault_x: Pubkey,
-    vault_y: Pubkey,
+    accounts: &PoolAccounts,
+    fee: u16,
 ) -> Instruction {
-    let maker = payer.pubkey();
+    let maker = accounts.payer.pubkey();
 
     Instruction::new_with_bytes(
         turbine_amm::id(),
         &turbine_amm::instruction::Initialize {
             seed: 123,
-            fee: 30,
+            fee,
             authority: Some(maker),
         }
         .data(),
         turbine_amm::accounts::Initialize {
             initializer: maker,
-            mint_x,
-            mint_y,
-            mint_lp,
-            vault_x,
-            vault_y,
-            pool,
+            mint_x: accounts.mint_x,
+            mint_y: accounts.mint_y,
+            mint_lp: accounts.mint_lp,
+            vault_x: accounts.vault_x,
+            vault_y: accounts.vault_y,
+            pool: accounts.pool,
             token_program: TOKEN_PROGRAM_ID,
             associated_token_program: ATA_PROGRAM_ID,
             system_program: system_program::ID,
