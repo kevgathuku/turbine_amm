@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount},
 };
 
-use crate::{error::AmmError, Pool, MINT_LP_SEED, POOL_SEED, MAX_FEE_BPS};
+use crate::{error::AmmError, Pool, MAX_FEE_BPS, MINT_LP_SEED, POOL_SEED};
 
 #[derive(Accounts)]
 #[instruction(seed: u64)]
