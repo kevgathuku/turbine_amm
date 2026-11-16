@@ -1,8 +1,9 @@
 mod common;
 
 use {
-    anchor_lang::error::ErrorCode, anchor_spl::associated_token::get_associated_token_address,
-    common::*, solana_signer::Signer,
+    anchor_lang::{error::ErrorCode, AccountDeserialize, AccountSerialize},
+    anchor_spl::associated_token::get_associated_token_address, common::*, solana_signer::Signer,
+    turbine_amm::{error::AmmError, Pool},
 };
 
 // X and Y deliberately differ so an x/y swap fails loudly.
@@ -57,4 +58,37 @@ fn test_deposit_same_mint_fails() {
         err_str.contains(&expected),
         "expected {expected}, got: {err_str}"
     );
+}
+
+#[test]
+fn test_deposit_locked_pool_fails() {
+    let PoolFixture { mut svm, accounts } = setup();
+
+    let init_ix = create_initialize_tx(&mut svm, &accounts, 30);
+    send(&mut svm, &[init_ix], &accounts.payer, &[&accounts.payer])
+        .expect("initialize should succeed");
+
+    // Lock the pool by flipping the flag in its account data.
+    // try_serialize appends discriminator + struct (Write on Vec appends!),
+    // so start from an empty buffer, not the existing bytes.
+    let mut pool_acct = svm.get_account(&accounts.pool).expect("pool missing");
+    let mut pool_state = Pool::try_deserialize(&mut &pool_acct.data[..]).unwrap();
+    pool_state.locked = true;
+    let mut data = Vec::with_capacity(pool_acct.data.len());
+    pool_state.try_serialize(&mut data).unwrap();
+    pool_acct.data = data;
+    svm.set_account(accounts.pool, pool_acct).unwrap();
+
+    let deposit_ix = create_deposit_tx(&mut svm, &accounts, LP_MINT, DEPOSIT_X, DEPOSIT_Y);
+    let err = send(
+        &mut svm,
+        &[deposit_ix],
+        &accounts.payer,
+        &[&accounts.payer],
+    )
+    .unwrap_err();
+
+    let logs = err.meta.logs.join("\n");
+    let expected = format!("{:?}", AmmError::PoolLocked);
+    assert!(logs.contains(&expected), "expected {expected}, got:\n{logs}");
 }
