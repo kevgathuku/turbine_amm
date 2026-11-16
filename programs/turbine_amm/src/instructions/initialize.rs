@@ -25,6 +25,7 @@ pub struct Initialize<'info> {
     )]
     pub mint_lp: Account<'info, Mint>,
 
+    // Pool's ATA for Token X
     #[account(
         init,
         payer = initializer,
@@ -32,6 +33,8 @@ pub struct Initialize<'info> {
         associated_token::authority = pool,
     )]
     pub vault_x: Account<'info, TokenAccount>,
+    
+    // Pool's ATA for Token Y
     #[account(
         init,
         payer = initializer,

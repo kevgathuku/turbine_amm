@@ -31,6 +31,7 @@ pub struct Deposit<'info> {
     )]
     pub mint_lp: Account<'info, Mint>,
 
+    // Pool's ATA for Token X
     #[account(
         mut,
         associated_token::mint = mint_x,
@@ -38,6 +39,7 @@ pub struct Deposit<'info> {
     )]
     pub vault_x: Box<Account<'info, TokenAccount>>,
 
+    // Pool's ATA for Token Y
     #[account(
         mut,
         associated_token::mint = mint_y,
@@ -45,6 +47,7 @@ pub struct Deposit<'info> {
     )]
     pub vault_y: Box<Account<'info, TokenAccount>>,
 
+    // User's ATA for Token X
     #[account(
         mut,
         associated_token::mint = mint_x,
@@ -52,6 +55,7 @@ pub struct Deposit<'info> {
     )]
     pub user_x: Box<Account<'info, TokenAccount>>,
 
+    // User's ATA for Token Y
     #[account(
         mut,
         associated_token::mint = mint_y,
@@ -59,6 +63,7 @@ pub struct Deposit<'info> {
     )]
     pub user_y: Box<Account<'info, TokenAccount>>,
 
+    // User's ATA for the LP Mint
     #[account(
         init_if_needed,
         payer = user,
@@ -69,13 +74,15 @@ pub struct Deposit<'info> {
 
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    // Needed for associated_token references above
+    // Called by CPI to create user_lp if not existing
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 impl<'info> Deposit<'info> {
     pub fn deposit(
         &mut self,
-        amount: u64, // Amount of LP tokens that the user wants to "claim"
+        amount: u64, // Amount of LP tokens to mint
         max_x: u64,  // Maximum amount of token X that the user is willing to deposit
         max_y: u64,  // Maximum amount of token Y that the user is willing to deposit
     ) -> Result<()> {
@@ -148,11 +155,12 @@ impl<'info> Deposit<'info> {
             authority: self.pool.to_account_info(),
         };
 
-        let signer_seeds: &[&[&[u8]]] = &[&[
+        let seeds = &[
             POOL_SEED,
-            &self.pool.seed.to_le_bytes(),
+            &self.pool.seed.to_le_bytes()[..],
             &[self.pool.pool_bump],
-        ]];
+        ];
+        let signer_seeds = &[&seeds[..]];
 
         let ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
 
