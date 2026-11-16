@@ -27,6 +27,8 @@ pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 pub const DECIMALS: u8 = 6;
 // Test scenario amounts: X and Y deliberately differ so an x/y swap fails loudly.
 pub const USER_MINT_FUNDING: u64 = 1_000_000_000;
+// Fee in basis points charged on swaps; Mirrors the pool's configured fee.
+pub const FEE_BPS: u16 = 30;
 pub const DEPOSIT_X: u64 = 200_000_000;
 pub const DEPOSIT_Y: u64 = 300_000_000;
 pub const LP_MINT: u64 = 100_000_000;
@@ -151,7 +153,7 @@ pub fn setup() -> PoolFixture {
 pub fn setup_initialized_pool() -> PoolFixture {
     let PoolFixture { mut svm, accounts } = setup();
 
-    let init_ix = create_initialize_tx(&accounts, 30);
+    let init_ix = create_initialize_tx(&accounts, FEE_BPS);
     send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
 
     let deposit_ix = create_deposit_tx(&accounts, LP_MINT, DEPOSIT_X, DEPOSIT_Y);
@@ -243,6 +245,40 @@ pub fn create_update_tx_with_authority(
         turbine_amm::accounts::Update {
             authority: *authority,
             pool: accounts.pool,
+        }
+        .to_account_metas(None),
+    )
+}
+
+pub fn create_swap_tx(
+    accounts: &PoolAccounts,
+    is_x: bool,
+    amount_in: u64,
+    min_amount_out: u64,
+) -> Instruction {
+    let user = accounts.payer.pubkey();
+
+    Instruction::new_with_bytes(
+        turbine_amm::id(),
+        &turbine_amm::instruction::Swap {
+            is_x,
+            amount_in,
+            min_amount_out,
+        }
+        .data(),
+        turbine_amm::accounts::Swap {
+            user,
+            mint_x: accounts.mint_x,
+            mint_y: accounts.mint_y,
+            pool: accounts.pool,
+            mint_lp: accounts.mint_lp,
+            vault_x: accounts.vault_x,
+            vault_y: accounts.vault_y,
+            user_x: get_associated_token_address(&user, &accounts.mint_x),
+            user_y: get_associated_token_address(&user, &accounts.mint_y),
+            token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ATA_PROGRAM_ID,
+            system_program: system_program::ID,
         }
         .to_account_metas(None),
     )

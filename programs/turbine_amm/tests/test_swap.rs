@@ -1,0 +1,31 @@
+mod common;
+
+use common::*;
+
+// Swap 10M X for Y: full amount in, fee-adjusted amount out
+const SWAP_IN: u64 = 10_000_000;
+const FEE: u64 = SWAP_IN * FEE_BPS as u64 / 10_000;
+const A2: u64 = SWAP_IN - FEE;
+const K: u64 = DEPOSIT_X * DEPOSIT_Y;
+const Y2: u64 = K / (DEPOSIT_X + A2);
+const SWAP_OUT: u64 = DEPOSIT_Y - Y2;
+
+#[test]
+fn test_swap_x_for_y() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let swap_ix = create_swap_tx(&accounts, true, SWAP_IN, SWAP_OUT);
+    send(&mut svm, &[&accounts.payer], swap_ix).expect("swap should succeed");
+
+    // fee stays in the pool
+    assert_eq!(token_balance(&svm, &accounts.vault_x), DEPOSIT_X + SWAP_IN);
+    assert_eq!(token_balance(&svm, &accounts.vault_y), DEPOSIT_Y - SWAP_OUT);
+    assert_eq!(
+        token_balance(&svm, &accounts.user_x),
+        USER_MINT_FUNDING - DEPOSIT_X - SWAP_IN
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_y),
+        USER_MINT_FUNDING - DEPOSIT_Y + SWAP_OUT
+    );
+}
