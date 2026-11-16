@@ -97,11 +97,27 @@ fn test_deposit_proportional_succeeds() {
 }
 
 #[test]
-fn test_deposit_slippage_exceeded_fails() {
+fn test_deposit_slippage_x_exceeded_fails() {
     let PoolFixture { mut svm, accounts } = setup_initialized_pool();
 
     // max_x one unit below the proportional share.
     let deposit_ix = create_deposit_tx(&accounts, LP_MINT / 2, DEPOSIT_X / 2 - 1, DEPOSIT_Y / 2);
+    let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
+
+    let expected = AmmError::SlippageExceeded.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
+
+#[test]
+fn test_deposit_slippage_y_exceeded_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // max_y one unit below the proportional share.
+    let deposit_ix = create_deposit_tx(&accounts, LP_MINT / 2, DEPOSIT_X, DEPOSIT_Y / 2 - 1);
     let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
 
     let expected = AmmError::SlippageExceeded.to_string();
@@ -124,5 +140,35 @@ fn test_deposit_zero_amount_fails() {
     assert!(
         err_str.contains(&expected),
         "expected {expected}, got: {err_str}"
+    );
+}
+
+#[test]
+fn test_deposit_generous_max_takes_computed_amounts() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // Maxes far above the proportional share: only the computed amounts move.
+    let deposit_ix = create_deposit_tx(&accounts, LP_MINT / 2, DEPOSIT_X, DEPOSIT_Y);
+    send(&mut svm, &[&accounts.payer], deposit_ix).expect("generous deposit should succeed");
+
+    assert_eq!(
+        token_balance(&svm, &accounts.vault_x),
+        DEPOSIT_X + DEPOSIT_X / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.vault_y),
+        DEPOSIT_Y + DEPOSIT_Y / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_x),
+        USER_MINT_FUNDING - DEPOSIT_X - DEPOSIT_X / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_y),
+        USER_MINT_FUNDING - DEPOSIT_Y - DEPOSIT_Y / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_lp),
+        LP_MINT + LP_MINT / 2
     );
 }
