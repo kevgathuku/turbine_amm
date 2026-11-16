@@ -63,6 +63,7 @@ Verifies:
 
 - burning LP returns the proportional share of each vault back to the user, verified at exact boundary minimums.
 - vaults and LP supply shrink proportionally to the burn.
+- Rejects withdrawals below the minimum amounts, on either side (`SlippageExceeded`).
 - Rejects zero-amount withdrawals (`InvalidAmount`).
 - Rejects withdrawals from a locked pool (`PoolLocked`).
 

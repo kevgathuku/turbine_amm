@@ -57,3 +57,35 @@ fn test_withdraw_zero_amount_fails() {
         "expected {expected}, got: {err_str}"
     );
 }
+
+#[test]
+fn test_withdraw_slippage_exceeded_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // min_x one unit above the proportional share.
+    let withdraw_ix = create_withdraw_tx(&accounts, LP_MINT / 2, DEPOSIT_X / 2 + 1, DEPOSIT_Y / 2);
+    let err = send(&mut svm, &[&accounts.payer], withdraw_ix).unwrap_err();
+
+    let expected = AmmError::SlippageExceeded.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
+
+#[test]
+fn test_withdraw_slippage_y_exceeded_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // min_y one unit above the proportional share.
+    let withdraw_ix = create_withdraw_tx(&accounts, LP_MINT / 2, DEPOSIT_X / 2, DEPOSIT_Y / 2 + 1);
+    let err = send(&mut svm, &[&accounts.payer], withdraw_ix).unwrap_err();
+
+    let expected = AmmError::SlippageExceeded.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
