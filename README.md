@@ -49,6 +49,7 @@ Verifies:
 
 - first deposit takes the max amounts and mints the requested LP.
 - proportional deposits move exactly the computed share (boundary max passes).
+- generous maxes are caps, not amounts: approval above the computed share moves nothing extra.
 - Rejects deposits above the slippage bounds, on either side (`SlippageExceeded`).
 - Rejects zero-amount deposits (`InvalidAmount`).
 - Rejects same mint on both sides (`ConstraintDuplicateMutableAccount`).
@@ -62,6 +63,7 @@ Verifies:
 
 - burning LP returns the proportional share of each vault back to the user, verified at exact boundary minimums.
 - vaults and LP supply shrink proportionally to the burn.
+- Rejects zero-amount withdrawals (`InvalidAmount`).
 - Rejects withdrawals from a locked pool (`PoolLocked`).
 
 ### swap
@@ -72,6 +74,7 @@ Verifies:
 
 - exact post-swap balances (vaults, user, treasury) against hand-computed math.
 - fee stays in the pool except the treasury cut, which lands in the input side's treasury ATA.
+- Rejects zero-amount swaps (`InvalidAmount`).
 - Rejects swaps into a locked pool (`PoolLocked`).
 
 ### update

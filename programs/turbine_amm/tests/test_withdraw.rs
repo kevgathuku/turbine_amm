@@ -42,3 +42,18 @@ fn test_withdraw_locked_pool_fails() {
         "expected {expected}, got: {err_str}"
     );
 }
+
+#[test]
+fn test_withdraw_zero_amount_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let withdraw_ix = create_withdraw_tx(&accounts, 0, 0, 0);
+    let err = send(&mut svm, &[&accounts.payer], withdraw_ix).unwrap_err();
+
+    let expected = AmmError::InvalidAmount.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
