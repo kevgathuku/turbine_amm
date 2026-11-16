@@ -4,10 +4,7 @@ use {common::*, solana_keypair::Keypair, solana_signer::Signer, turbine_amm::err
 
 #[test]
 fn test_update_lock_unlock_roundtrip() {
-    let PoolFixture { mut svm, accounts } = setup();
-
-    let init_ix = create_initialize_tx(&accounts, 30);
-    send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
 
     send(
         &mut svm,
@@ -29,10 +26,7 @@ fn test_update_lock_unlock_roundtrip() {
 
 #[test]
 fn test_update_wrong_authority_fails() {
-    let PoolFixture { mut svm, accounts } = setup();
-
-    let init_ix = create_initialize_tx(&accounts, 30);
-    send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
 
     // Rogue pays its own fee and signs, but is not the recorded authority.
     let rogue = Keypair::new();

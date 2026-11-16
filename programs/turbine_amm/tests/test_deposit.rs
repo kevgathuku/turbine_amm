@@ -27,10 +27,7 @@ fn test_deposit() {
 
 #[test]
 fn test_deposit_same_mint_fails() {
-    let PoolFixture { mut svm, accounts } = setup();
-
-    let init_ix = create_initialize_tx(&accounts, 30);
-    send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
 
     // Same mint for X and Y: the Y-accounts alias their X counterparts.
     let bad_accounts = PoolAccounts {
@@ -52,10 +49,7 @@ fn test_deposit_same_mint_fails() {
 
 #[test]
 fn test_deposit_locked_pool_fails() {
-    let PoolFixture { mut svm, accounts } = setup();
-
-    let init_ix = create_initialize_tx(&accounts, 30);
-    send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
 
     // Lock the pool through the real admin instruction.
     let lock_ix = create_update_tx(&accounts, true);
@@ -65,6 +59,67 @@ fn test_deposit_locked_pool_fails() {
     let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
 
     let expected = AmmError::PoolLocked.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
+
+#[test]
+fn test_deposit_proportional_succeeds() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // Second deposit of half the LP supply takes exactly half of each vault.
+    let deposit_ix = create_deposit_tx(&accounts, LP_MINT / 2, DEPOSIT_X / 2, DEPOSIT_Y / 2);
+    send(&mut svm, &[&accounts.payer], deposit_ix).expect("proportional deposit should succeed");
+
+    assert_eq!(
+        token_balance(&svm, &accounts.vault_x),
+        DEPOSIT_X + DEPOSIT_X / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.vault_y),
+        DEPOSIT_Y + DEPOSIT_Y / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_x),
+        USER_MINT_FUNDING - DEPOSIT_X - DEPOSIT_X / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_y),
+        USER_MINT_FUNDING - DEPOSIT_Y - DEPOSIT_Y / 2
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_lp),
+        LP_MINT + LP_MINT / 2
+    );
+}
+
+#[test]
+fn test_deposit_slippage_exceeded_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // max_x one unit below the proportional share.
+    let deposit_ix = create_deposit_tx(&accounts, LP_MINT / 2, DEPOSIT_X / 2 - 1, DEPOSIT_Y / 2);
+    let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
+
+    let expected = AmmError::SlippageExceeded.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
+
+#[test]
+fn test_deposit_zero_amount_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let deposit_ix = create_deposit_tx(&accounts, 0, DEPOSIT_X, DEPOSIT_Y);
+    let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
+
+    let expected = AmmError::InvalidAmount.to_string();
     let err_str = format!("{err:?}");
     assert!(
         err_str.contains(&expected),

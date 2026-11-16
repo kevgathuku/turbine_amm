@@ -141,6 +141,20 @@ pub fn setup() -> PoolFixture {
     }
 }
 
+// Setup plus initialize plus first deposit: the standard prelude for any test
+// that acts on a live pool.
+pub fn setup_initialized_pool() -> PoolFixture {
+    let PoolFixture { mut svm, accounts } = setup();
+
+    let init_ix = create_initialize_tx(&accounts, 30);
+    send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
+
+    let deposit_ix = create_deposit_tx(&accounts, LP_MINT, DEPOSIT_X, DEPOSIT_Y);
+    send(&mut svm, &[&accounts.payer], deposit_ix).expect("first deposit should succeed");
+
+    PoolFixture { svm, accounts }
+}
+
 // Read a token balance via the SPL Token account layout
 pub fn token_balance(svm: &LiteSVM, account: &Pubkey) -> u64 {
     let acct = svm.get_account(account).expect("account not found");
