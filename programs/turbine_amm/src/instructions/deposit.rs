@@ -11,7 +11,7 @@ use crate::{error::AmmError, Pool, MINT_LP_SEED, POOL_SEED};
 pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
-    
+
     pub mint_x: Account<'info, Mint>,
     pub mint_y: Account<'info, Mint>,
 
