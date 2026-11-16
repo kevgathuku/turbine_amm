@@ -74,6 +74,7 @@ Verifies:
 
 - exact post-swap balances (vaults, user, treasury) against hand-computed math.
 - fee stays in the pool except the treasury cut, which lands in the input side's treasury ATA.
+- Rejects swaps below the minimum output (`SlippageExceeded`).
 - Rejects zero-amount swaps (`InvalidAmount`).
 - Rejects swaps into a locked pool (`PoolLocked`).
 

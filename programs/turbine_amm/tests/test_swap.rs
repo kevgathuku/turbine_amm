@@ -87,3 +87,18 @@ fn test_swap_zero_amount_fails() {
         "expected {expected}, got: {err_str}"
     );
 }
+
+#[test]
+fn test_swap_slippage_exceeded_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let swap_ix = create_swap_tx(&accounts, true, SWAP_IN, SWAP_OUT + 1);
+    let err = send(&mut svm, &[&accounts.payer], swap_ix).unwrap_err();
+
+    let expected = AmmError::SlippageExceeded.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
