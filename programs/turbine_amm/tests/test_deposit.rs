@@ -1,7 +1,8 @@
 mod common;
 
 use {
-    anchor_spl::associated_token::get_associated_token_address, common::*, solana_signer::Signer,
+    anchor_lang::error::ErrorCode, anchor_spl::associated_token::get_associated_token_address,
+    common::*, solana_signer::Signer,
 };
 
 // X and Y deliberately differ so an x/y swap fails loudly.
@@ -30,4 +31,30 @@ fn test_deposit() {
     assert_eq!(token_balance(&svm, &user_x), USER_MINT_FUNDING - DEPOSIT_X);
     assert_eq!(token_balance(&svm, &user_y), USER_MINT_FUNDING - DEPOSIT_Y);
     assert_eq!(token_balance(&svm, &user_lp), LP_MINT);
+}
+
+#[test]
+fn test_deposit_same_mint_fails() {
+    let PoolFixture { mut svm, accounts } = setup();
+
+    let init_ix = create_initialize_tx(&mut svm, &accounts, 30);
+    send(&mut svm, &[init_ix], &accounts.payer, &[&accounts.payer])
+        .expect("initialize should succeed");
+
+    // Same mint for X and Y
+    let bad_accounts = PoolAccounts {
+        mint_y: accounts.mint_x,
+        vault_y: accounts.vault_x,
+        ..accounts
+    };
+    let ix = create_deposit_tx(&mut svm, &bad_accounts, LP_MINT, DEPOSIT_X, DEPOSIT_Y);
+    let err = send(&mut svm, &[ix], &bad_accounts.payer, &[&bad_accounts.payer]).unwrap_err();
+
+    // Anchor's duplicate-mutable-account fires before the handler's InvalidToken.
+    let expected = ErrorCode::ConstraintDuplicateMutableAccount.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
 }

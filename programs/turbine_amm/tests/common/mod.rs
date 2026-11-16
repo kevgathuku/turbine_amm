@@ -12,7 +12,8 @@ use {
     },
     litesvm::LiteSVM,
     litesvm_token::{
-        spl_token::ID as TOKEN_PROGRAM_ID, CreateAssociatedTokenAccount, CreateMint, MintTo,
+        spl_token::ID as TOKEN_PROGRAM_ID, CreateAssociatedTokenAccountIdempotent,
+        CreateMint, MintTo,
     },
     solana_keypair::Keypair,
     solana_message::{Message, VersionedMessage},
@@ -124,10 +125,11 @@ pub fn create_deposit_tx(
 ) -> Instruction {
     let user = accounts.payer.pubkey();
 
-    let user_x = CreateAssociatedTokenAccount::new(svm, &accounts.payer, &accounts.mint_x)
-        .owner(&user)
-        .send()
-        .unwrap();
+    let user_x =
+        CreateAssociatedTokenAccountIdempotent::new(svm, &accounts.payer, &accounts.mint_x)
+            .owner(&user)
+            .send()
+            .unwrap();
     MintTo::new(
         svm,
         &accounts.payer,
@@ -138,10 +140,15 @@ pub fn create_deposit_tx(
     .send()
     .unwrap();
 
-    let user_y = CreateAssociatedTokenAccount::new(svm, &accounts.payer, &accounts.mint_y)
-        .owner(&user)
-        .send()
-        .unwrap();
+    // Fresh blockhash so the second funding tx can't be a byte-identical replay
+    // of the first when both legs use the same mint.
+    svm.expire_blockhash();
+
+    let user_y =
+        CreateAssociatedTokenAccountIdempotent::new(svm, &accounts.payer, &accounts.mint_y)
+            .owner(&user)
+            .send()
+            .unwrap();
     MintTo::new(
         svm,
         &accounts.payer,
