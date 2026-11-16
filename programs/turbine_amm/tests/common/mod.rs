@@ -291,3 +291,38 @@ pub fn create_swap_tx(
         .to_account_metas(None),
     )
 }
+
+pub fn create_withdraw_tx(
+    accounts: &PoolAccounts,
+    amount: u64,
+    min_x: u64,
+    min_y: u64,
+) -> Instruction {
+    let user = accounts.payer.pubkey();
+
+    Instruction::new_with_bytes(
+        turbine_amm::id(),
+        &turbine_amm::instruction::Withdraw {
+            amount,
+            min_x,
+            min_y,
+        }
+        .data(),
+        turbine_amm::accounts::Withdraw {
+            user,
+            mint_x: accounts.mint_x,
+            mint_y: accounts.mint_y,
+            pool: accounts.pool,
+            mint_lp: accounts.mint_lp,
+            vault_x: accounts.vault_x,
+            vault_y: accounts.vault_y,
+            user_x: accounts.user_x,
+            user_y: accounts.user_y,
+            user_lp: accounts.user_lp,
+            token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ATA_PROGRAM_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    )
+}

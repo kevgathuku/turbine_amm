@@ -4,8 +4,9 @@
 
 1. Creates a constant-product pool for two mints with a fee and treasury (`initialize`)
 2. Adds liquidity, minting LP tokens proportional to the deposit (`deposit`)
-3. Swaps one side for the other with slippage protection, sending 20% of the fee to the treasury (`swap`)
-4. Locks or unlocks the pool, halting deposits and swaps while locked (`update`)
+3. Removes liquidity, burning LP tokens and returning the proportional share (`withdraw`)
+4. Swaps one side for the other with slippage protection, sending 20% of the fee to the treasury (`swap`)
+5. Locks or unlocks the pool, halting deposits and swaps while locked (`update`)
 
 Each pool is a PDA holding its config (`seed`, both mints, `fee`, `treasury`, `locked`), with each side's liquidity in a vault ATA owned by that PDA. Swap fees stay in the vaults implicitly, except a 20% cut paid out to treasury ATAs owned by the pool's treasury key.
 
@@ -52,6 +53,15 @@ Verifies:
 - Rejects zero-amount deposits (`InvalidAmount`).
 - Rejects same mint on both sides (`ConstraintDuplicateMutableAccount`).
 - Rejects deposits into a locked pool (`PoolLocked`).
+
+### withdraw
+
+Withdraw liquidity: burns LP tokens and returns the proportional share of both vaults.
+
+Verifies:
+
+- burning LP returns the proportional share of each vault back to the user, verified at exact boundary minimums.
+- vaults and LP supply shrink proportionally to the burn.
 
 ### swap
 
