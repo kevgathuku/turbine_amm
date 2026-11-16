@@ -11,7 +11,9 @@ use {
         token::spl_token::state::Account as TokenAccount,
     },
     litesvm::LiteSVM,
-    litesvm_token::{spl_token::ID as TOKEN_PROGRAM_ID, CreateMint},
+    litesvm_token::{
+        spl_token::ID as TOKEN_PROGRAM_ID, CreateAssociatedTokenAccount, CreateMint, MintTo,
+    },
     solana_keypair::Keypair,
     solana_message::{Message, VersionedMessage},
     solana_program_pack::Pack,
@@ -22,7 +24,7 @@ use {
 
 pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 
-pub const SEED: u64 = 42;
+pub const USER_MINT_FUNDING: u64 = 1_000_000_000;
 // Decimals for both mint tokens
 pub const DECIMALS: u8 = 6;
 
@@ -71,13 +73,13 @@ pub fn setup() -> PoolFixture {
 
     // Create two mints (Mint A and Mint B) with 6 decimal places and the maker as the authority
     let mint_x = CreateMint::new(&mut svm, &payer)
-        .decimals(6)
+        .decimals(DECIMALS)
         .authority(&payer.pubkey())
         .send()
         .unwrap();
 
     let mint_y = CreateMint::new(&mut svm, &payer)
-        .decimals(6)
+        .decimals(DECIMALS)
         .authority(&payer.pubkey())
         .send()
         .unwrap();
@@ -113,6 +115,69 @@ pub fn token_balance(svm: &LiteSVM, account: &Pubkey) -> u64 {
     TokenAccount::unpack(&acct.data).unwrap().amount
 }
 
+pub fn create_deposit_tx(
+    svm: &mut LiteSVM,
+    accounts: &PoolAccounts,
+    amount: u64,
+    max_x: u64,
+    max_y: u64,
+) -> Instruction {
+    let user = accounts.payer.pubkey();
+
+    let user_x = CreateAssociatedTokenAccount::new(svm, &accounts.payer, &accounts.mint_x)
+        .owner(&user)
+        .send()
+        .unwrap();
+    MintTo::new(
+        svm,
+        &accounts.payer,
+        &accounts.mint_x,
+        &user_x,
+        USER_MINT_FUNDING,
+    )
+    .send()
+    .unwrap();
+
+    let user_y = CreateAssociatedTokenAccount::new(svm, &accounts.payer, &accounts.mint_y)
+        .owner(&user)
+        .send()
+        .unwrap();
+    MintTo::new(
+        svm,
+        &accounts.payer,
+        &accounts.mint_y,
+        &user_y,
+        USER_MINT_FUNDING,
+    )
+    .send()
+    .unwrap();
+
+    Instruction::new_with_bytes(
+        turbine_amm::id(),
+        &turbine_amm::instruction::Deposit {
+            amount,
+            max_x,
+            max_y,
+        }
+        .data(),
+        turbine_amm::accounts::Deposit {
+            user,
+            mint_x: accounts.mint_x,
+            mint_y: accounts.mint_y,
+            pool: accounts.pool,
+            mint_lp: accounts.mint_lp,
+            vault_x: accounts.vault_x,
+            vault_y: accounts.vault_y,
+            user_x,
+            user_y,
+            user_lp: get_associated_token_address(&user, &accounts.mint_lp),
+            token_program: TOKEN_PROGRAM_ID,
+            associated_token_program: ATA_PROGRAM_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    )
+}
 pub fn create_initialize_tx(
     mut _svm: &mut LiteSVM,
     accounts: &PoolAccounts,
