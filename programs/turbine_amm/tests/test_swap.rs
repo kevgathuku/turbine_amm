@@ -1,8 +1,9 @@
 mod common;
 
 use {
-    anchor_spl::associated_token::get_associated_token_address, common::*,
-    turbine_amm::constants::TREASURY_CUT_BPS,
+    anchor_spl::associated_token::get_associated_token_address,
+    common::*,
+    turbine_amm::{constants::TREASURY_CUT_BPS, error::AmmError},
 };
 
 // Swap 10M X for Y: full amount in, fee-adjusted amount out
@@ -50,5 +51,24 @@ fn test_swap_x_for_y() {
     assert_eq!(
         token_balance(&svm, &accounts.user_y),
         USER_MINT_FUNDING - DEPOSIT_Y + SWAP_OUT
+    );
+}
+
+#[test]
+fn test_swap_locked_pool_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // Lock the pool through the real admin instruction.
+    let lock_ix = create_update_tx(&accounts, true);
+    send(&mut svm, &[&accounts.payer], lock_ix).expect("lock should succeed");
+
+    let swap_ix = create_swap_tx(&accounts, true, SWAP_IN, SWAP_OUT);
+    let err = send(&mut svm, &[&accounts.payer], swap_ix).unwrap_err();
+
+    let expected = AmmError::PoolLocked.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
     );
 }
