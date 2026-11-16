@@ -74,6 +74,7 @@ Swap X for Y: moves the full input into the vault, pays out the fee-adjusted amo
 Verifies:
 
 - exact post-swap balances (vaults, user, treasury) against hand-computed math.
+- swaps both directions (X→Y and Y→X), each paying the fee-adjusted amount with the treasury cut on the input side.
 - fee stays in the pool except the treasury cut, which lands in the input side's treasury ATA.
 - Rejects swaps below the minimum output (`SlippageExceeded`).
 - Rejects zero-amount swaps (`InvalidAmount`).
