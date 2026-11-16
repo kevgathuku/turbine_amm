@@ -39,6 +39,8 @@ pub enum AmmError {
     InsufficientBalance,
     #[msg("Zero balance.")]
     ZeroBalance,
+    #[msg("Both token mints must have the same decimals.")]
+    MismatchedDecimals,
 }
 
 impl From<CurveError> for AmmError {

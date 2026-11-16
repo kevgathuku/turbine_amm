@@ -20,7 +20,7 @@ pub struct Initialize<'info> {
         payer = initializer,
         seeds = [MINT_LP_SEED, pool.key.as_ref()],
         bump,
-        mint::decimals = 6,
+        mint::decimals = mint_x.decimals,
         mint::authority = pool,
     )]
     pub mint_lp: Account<'info, Mint>,
@@ -63,6 +63,10 @@ impl<'info> Initialize<'info> {
         bumps: InitializeBumps,
     ) -> Result<()> {
         require!(fee <= MAX_FEE_BPS, AmmError::FeePercentErr);
+        require!(
+            self.mint_x.decimals == self.mint_y.decimals,
+            AmmError::MismatchedDecimals
+        );
 
         self.pool.set_inner(Pool {
             seed,

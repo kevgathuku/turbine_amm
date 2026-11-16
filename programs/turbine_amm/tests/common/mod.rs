@@ -69,8 +69,13 @@ pub struct PoolFixture {
 
 // New mint with the payer as authority.
 pub fn create_mint(svm: &mut LiteSVM, payer: &Keypair) -> Pubkey {
+    create_mint_with_decimals(svm, payer, DECIMALS)
+}
+
+// New mint with explicit decimals.
+pub fn create_mint_with_decimals(svm: &mut LiteSVM, payer: &Keypair, decimals: u8) -> Pubkey {
     CreateMint::new(svm, payer)
-        .decimals(DECIMALS)
+        .decimals(decimals)
         .authority(&payer.pubkey())
         .send()
         .unwrap()
