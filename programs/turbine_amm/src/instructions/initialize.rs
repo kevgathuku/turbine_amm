@@ -63,6 +63,7 @@ impl<'info> Initialize<'info> {
         seed: u64,
         fee: u16,
         authority: Option<Pubkey>,
+        treasury: Pubkey,
         bumps: InitializeBumps,
     ) -> Result<()> {
         require!(fee <= MAX_FEE_BPS, AmmError::FeePercentErr);
@@ -78,6 +79,7 @@ impl<'info> Initialize<'info> {
             mint_y: self.mint_y.key(),
             fee,
             locked: false,
+            treasury,
             pool_bump: bumps.pool,
             lp_bump: bumps.mint_lp,
         });

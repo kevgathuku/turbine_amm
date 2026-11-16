@@ -20,8 +20,10 @@ pub mod turbine_amm {
         seed: u64,
         fee: u16,
         authority: Option<Pubkey>,
+        treasury: Pubkey,
     ) -> Result<()> {
-        ctx.accounts.initialize(seed, fee, authority, ctx.bumps)
+        ctx.accounts
+            .initialize(seed, fee, authority, treasury, ctx.bumps)
     }
 
     pub fn deposit(ctx: Context<Deposit>, amount: u64, max_x: u64, max_y: u64) -> Result<()> {

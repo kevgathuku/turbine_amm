@@ -1,6 +1,9 @@
 mod common;
 
-use common::*;
+use {
+    anchor_spl::associated_token::get_associated_token_address, common::*,
+    turbine_amm::constants::TREASURY_CUT_BPS,
+};
 
 // Swap 10M X for Y: full amount in, fee-adjusted amount out
 const SWAP_IN: u64 = 10_000_000;
@@ -10,6 +13,9 @@ const K: u64 = DEPOSIT_X * DEPOSIT_Y;
 const Y2: u64 = K / (DEPOSIT_X + A2);
 const SWAP_OUT: u64 = DEPOSIT_Y - Y2;
 
+// Treasury cut: 20% of the 30,000-unit fee, paid in the input token.
+const TREASURY_CUT: u64 = FEE * TREASURY_CUT_BPS as u64 / 10_000;
+
 #[test]
 fn test_swap_x_for_y() {
     let PoolFixture { mut svm, accounts } = setup_initialized_pool();
@@ -17,9 +23,26 @@ fn test_swap_x_for_y() {
     let swap_ix = create_swap_tx(&accounts, true, SWAP_IN, SWAP_OUT);
     send(&mut svm, &[&accounts.payer], swap_ix).expect("swap should succeed");
 
-    // fee stays in the pool
-    assert_eq!(token_balance(&svm, &accounts.vault_x), DEPOSIT_X + SWAP_IN);
+    // 80% of fee stays in the pool
+    assert_eq!(
+        token_balance(&svm, &accounts.vault_x),
+        DEPOSIT_X + SWAP_IN - TREASURY_CUT
+    );
     assert_eq!(token_balance(&svm, &accounts.vault_y), DEPOSIT_Y - SWAP_OUT);
+    assert_eq!(
+        token_balance(
+            &svm,
+            &get_associated_token_address(&accounts.treasury, &accounts.mint_x)
+        ),
+        TREASURY_CUT
+    );
+    assert_eq!(
+        token_balance(
+            &svm,
+            &get_associated_token_address(&accounts.treasury, &accounts.mint_y)
+        ),
+        0
+    );
     assert_eq!(
         token_balance(&svm, &accounts.user_x),
         USER_MINT_FUNDING - DEPOSIT_X - SWAP_IN

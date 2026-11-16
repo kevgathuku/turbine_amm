@@ -5,7 +5,7 @@ use anchor_spl::{
 };
 use constant_product_curve::{ConstantProduct, LiquidityPair, SwapResult};
 
-use crate::{error::AmmError, Pool, MINT_LP_SEED, POOL_SEED};
+use crate::{error::AmmError, Pool, MINT_LP_SEED, POOL_SEED, TREASURY_CUT_BPS};
 
 #[derive(Accounts)]
 pub struct Swap<'info> {
@@ -62,6 +62,29 @@ pub struct Swap<'info> {
     )]
     pub user_y: Box<Account<'info, TokenAccount>>,
 
+    /// CHECK: Treasury wallet; only its key is used (must match pool.treasury).
+    /// The pool PDA signs the payout on its behalf.
+    #[account(address = pool.treasury)]
+    pub treasury: UncheckedAccount<'info>,
+
+    // Treasury ATA for Token X
+    #[account(
+        init_if_needed,
+        payer = user,
+        associated_token::mint = mint_x,
+        associated_token::authority = treasury,
+    )]
+    pub treasury_x: Box<Account<'info, TokenAccount>>,
+
+    // Treasury ATA for Token Y
+    #[account(
+        init_if_needed,
+        payer = user,
+        associated_token::mint = mint_y,
+        associated_token::authority = treasury,
+    )]
+    pub treasury_y: Box<Account<'info, TokenAccount>>,
+
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -90,7 +113,49 @@ impl<'info> Swap<'info> {
             .map_err(AmmError::from)?;
 
         self.deposit_tokens(is_x, swap_result.deposit)?;
+        self.pay_treasury_cut(is_x, swap_result.fee)?;
         self.withdraw_tokens(is_x, swap_result.withdraw)
+    }
+
+    pub fn pay_treasury_cut(&self, is_x: bool, fee: u64) -> Result<()> {
+        let cut = fee
+            .checked_mul(TREASURY_CUT_BPS as u64)
+            .and_then(|c| c.checked_div(10_000))
+            .ok_or(AmmError::Overflow)?;
+        if cut == 0 {
+            return Ok(());
+        }
+
+        let (from, to) = match is_x {
+            true => (
+                self.vault_x.to_account_info(),
+                self.treasury_x.to_account_info(),
+            ),
+            false => (
+                self.vault_y.to_account_info(),
+                self.treasury_y.to_account_info(),
+            ),
+        };
+
+        let seeds = &[
+            POOL_SEED,
+            &self.pool.seed.to_le_bytes()[..],
+            &[self.pool.pool_bump],
+        ];
+        let pool_seeds = &[&seeds[..]];
+
+        transfer(
+            CpiContext::new_with_signer(
+                self.token_program.key(),
+                Transfer {
+                    from,
+                    to,
+                    authority: self.pool.to_account_info(),
+                },
+                pool_seeds,
+            ),
+            cut,
+        )
     }
 
     pub fn deposit_tokens(&mut self, is_x: bool, amount_in: u64) -> Result<()> {

@@ -51,6 +51,7 @@ pub fn send(
 
 pub struct PoolAccounts {
     pub payer: Keypair,
+    pub treasury: Pubkey,
     pub mint_lp: Pubkey,
     pub mint_bump: u8,
     pub mint_x: Pubkey,
@@ -114,6 +115,8 @@ pub fn setup() -> PoolFixture {
     let mint_x = create_mint(&mut svm, &payer);
     let mint_y = create_mint(&mut svm, &payer);
 
+    let treasury = Keypair::new();
+
     let (pool, pool_bump) =
         Pubkey::find_program_address(&[POOL_SEED, &123u64.to_le_bytes()], &program_id);
     let (mint_lp, mint_bump) =
@@ -133,6 +136,7 @@ pub fn setup() -> PoolFixture {
         svm,
         accounts: PoolAccounts {
             payer,
+            treasury: treasury.pubkey(),
             mint_lp,
             mint_bump,
             mint_x,
@@ -177,6 +181,7 @@ pub fn create_initialize_tx(accounts: &PoolAccounts, fee: u16) -> Instruction {
             seed: 123,
             fee,
             authority: Some(maker),
+            treasury: accounts.treasury,
         }
         .data(),
         turbine_amm::accounts::Initialize {
@@ -276,6 +281,9 @@ pub fn create_swap_tx(
             vault_y: accounts.vault_y,
             user_x: get_associated_token_address(&user, &accounts.mint_x),
             user_y: get_associated_token_address(&user, &accounts.mint_y),
+            treasury: accounts.treasury,
+            treasury_x: get_associated_token_address(&accounts.treasury, &accounts.mint_x),
+            treasury_y: get_associated_token_address(&accounts.treasury, &accounts.mint_y),
             token_program: TOKEN_PROGRAM_ID,
             associated_token_program: ATA_PROGRAM_ID,
             system_program: system_program::ID,

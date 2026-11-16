@@ -9,6 +9,7 @@ pub struct Pool {
     pub mint_y: Pubkey,            // Token Y
     pub fee: u16,                  // Swap fee in basis points
     pub locked: bool,              // If the pool is locked
+    pub treasury: Pubkey,          // Wallet receiving the treasury cut of swap fees
     pub pool_bump: u8,             // Bump seed for the liquidity pool account
     pub lp_bump: u8,               // Bump seed for the LP token
 }
