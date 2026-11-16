@@ -23,4 +23,8 @@ pub mod turbine_amm {
     ) -> Result<()> {
         ctx.accounts.initialize(seed, fee, authority, ctx.bumps)
     }
+
+    pub fn deposit(ctx: Context<Deposit>, amount: u64, max_x: u64, max_y: u64) -> Result<()> {
+        ctx.accounts.deposit(amount, max_x, max_y)
+    }
 }
