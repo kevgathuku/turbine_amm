@@ -215,3 +215,17 @@ pub fn create_initialize_tx(
         .to_account_metas(None),
     )
 }
+
+pub fn create_update_tx(accounts: &PoolAccounts, locked: bool) -> Instruction {
+    let maker = accounts.payer.pubkey();
+
+    Instruction::new_with_bytes(
+        turbine_amm::id(),
+        &turbine_amm::instruction::Update { locked }.data(),
+        turbine_amm::accounts::Update {
+            authority: maker,
+            pool: accounts.pool,
+        }
+        .to_account_metas(None),
+    )
+}
