@@ -53,6 +53,7 @@ Verifies:
 - Rejects deposits above the slippage bounds, on either side (`SlippageExceeded`).
 - Rejects zero-amount deposits (`InvalidAmount`).
 - Rejects zero maximums on first deposit (`InvalidAmount`).
+- Rejects dust deposits that compute to zero amounts (`InvalidAmount`).
 - Rejects same mint on both sides (`ConstraintDuplicateMutableAccount`).
 - Rejects deposits into a locked pool (`PoolLocked`).
 

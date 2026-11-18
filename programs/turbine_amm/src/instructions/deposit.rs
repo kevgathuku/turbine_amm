@@ -115,6 +115,10 @@ impl<'info> Deposit<'info> {
                 (amounts.x, amounts.y)
             };
 
+        // Rounding can take computed amounts to zero on dust deposits;
+        // minting LP for nothing is not a deposit.
+        require!(x > 0 && y > 0, AmmError::InvalidAmount);
+
         // deposit token x
         self.deposit_tokens(true, x)?;
         // deposit token y

@@ -80,10 +80,7 @@ impl<'info> Withdraw<'info> {
     ) -> Result<()> {
         require!(!self.pool.locked, AmmError::PoolLocked);
         require_neq!(amount, 0, AmmError::InvalidAmount);
-        require!(
-            amount <= self.mint_lp.supply,
-            AmmError::InsufficientBalance
-        );
+        require!(amount <= self.mint_lp.supply, AmmError::InsufficientBalance);
 
         let mut curve = ConstantProduct::init(
             self.vault_x.amount,

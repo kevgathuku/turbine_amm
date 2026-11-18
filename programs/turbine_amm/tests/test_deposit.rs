@@ -193,3 +193,19 @@ fn test_deposit_zero_max_on_first_deposit_fails() {
         );
     }
 }
+
+#[test]
+fn test_deposit_minimal_amount_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    // Minting LP for nothing is rejected instead of rounding down to a free mint
+    let deposit_ix = create_deposit_tx(&accounts, 1, 200, 300);
+    let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
+
+    let expected = AmmError::InvalidAmount.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}

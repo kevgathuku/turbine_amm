@@ -67,8 +67,16 @@ fn test_update_lock_idempotent_succeeds() {
     let PoolFixture { mut svm, accounts } = setup_initialized_pool();
 
     // Locking twice is a no-op, not an error: retries must stay safe.
-    send(&mut svm, &[&accounts.payer], create_update_tx(&accounts, true))
-        .expect("first lock should succeed");
-    send(&mut svm, &[&accounts.payer], create_update_tx(&accounts, true))
-        .expect("second lock should succeed");
+    send(
+        &mut svm,
+        &[&accounts.payer],
+        create_update_tx(&accounts, true),
+    )
+    .expect("first lock should succeed");
+    send(
+        &mut svm,
+        &[&accounts.payer],
+        create_update_tx(&accounts, true),
+    )
+    .expect("second lock should succeed");
 }
