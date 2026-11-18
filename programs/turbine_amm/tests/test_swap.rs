@@ -18,6 +18,7 @@ const FEE: u64 = SWAP_IN * FEE_BPS as u64 / 10_000;
 const A2: u64 = SWAP_IN - FEE;
 const K: u64 = DEPOSIT_X * DEPOSIT_Y;
 const Y2: u64 = K / (DEPOSIT_X + A2);
+// out = 14,244,893
 const SWAP_OUT: u64 = DEPOSIT_Y - Y2;
 
 // Treasury cut: 20% of the 30,000-unit fee, paid in the input token.
@@ -158,5 +159,20 @@ fn test_swap_y_for_x() {
             &get_associated_token_address(&treasury, &accounts.mint_x)
         ),
         0
+    );
+}
+
+#[test]
+fn test_swap_slippage_y_exceeded_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let swap_ix = create_swap_tx(&accounts, false, SWAP_Y_IN, SWAP_X_OUT + 1);
+    let err = send(&mut svm, &[&accounts.payer], swap_ix).unwrap_err();
+
+    let expected = AmmError::SlippageExceeded.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
     );
 }
