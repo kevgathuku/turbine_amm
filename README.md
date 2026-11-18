@@ -88,6 +88,7 @@ Lock or unlock the pool: authority-only flag flip that gates deposits and swaps.
 Verifies:
 
 - lock then unlock round-trips back to a working pool.
+- locking an already-locked pool succeeds
 - Rejects updates from anyone but the recorded authority (`InvalidAuthority`).
 - a locked pool rejects deposits (`PoolLocked`).
 
