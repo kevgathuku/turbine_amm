@@ -192,6 +192,9 @@ pub fn create_initialize_tx(accounts: &PoolAccounts, fee: u16) -> Instruction {
             vault_x: accounts.vault_x,
             vault_y: accounts.vault_y,
             pool: accounts.pool,
+            treasury_account: accounts.treasury,
+            treasury_x: get_associated_token_address(&accounts.treasury, &accounts.mint_x),
+            treasury_y: get_associated_token_address(&accounts.treasury, &accounts.mint_y),
             token_program: TOKEN_PROGRAM_ID,
             associated_token_program: ATA_PROGRAM_ID,
             system_program: system_program::ID,
@@ -286,7 +289,6 @@ pub fn create_swap_tx(
             treasury_y: get_associated_token_address(&accounts.treasury, &accounts.mint_y),
             token_program: TOKEN_PROGRAM_ID,
             associated_token_program: ATA_PROGRAM_ID,
-            system_program: system_program::ID,
         }
         .to_account_metas(None),
     )

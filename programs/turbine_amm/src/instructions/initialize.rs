@@ -7,7 +7,7 @@ use anchor_spl::{
 use crate::{error::AmmError, Pool, MAX_FEE_BPS, MINT_LP_SEED, POOL_SEED};
 
 #[derive(Accounts)]
-#[instruction(seed: u64)]
+#[instruction(seed: u64, fee: u16, authority: Option<Pubkey>, treasury: Pubkey)]
 pub struct Initialize<'info> {
     #[account(mut)]
     pub initializer: Signer<'info>,
@@ -51,6 +51,28 @@ pub struct Initialize<'info> {
         space = Pool::DISCRIMINATOR.len() + Pool::INIT_SPACE,
     )]
     pub pool: Account<'info, Pool>,
+
+    /// CHECK: Treasury wallet; stored as pool.treasury.
+    #[account(address = treasury)]
+    pub treasury_account: UncheckedAccount<'info>,
+
+    // Treasury ATA for Token X
+    #[account(
+        init,
+        payer = initializer,
+        associated_token::mint = mint_x,
+        associated_token::authority = treasury_account,
+    )]
+    pub treasury_x: Account<'info, TokenAccount>,
+
+    // Treasury ATA for Token Y
+    #[account(
+        init,
+        payer = initializer,
+        associated_token::mint = mint_y,
+        associated_token::authority = treasury_account,
+    )]
+    pub treasury_y: Account<'info, TokenAccount>,
 
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,

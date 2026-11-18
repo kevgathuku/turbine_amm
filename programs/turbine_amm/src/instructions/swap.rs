@@ -69,8 +69,7 @@ pub struct Swap<'info> {
 
     // Treasury ATA for Token X
     #[account(
-        init_if_needed,
-        payer = user,
+        mut,
         associated_token::mint = mint_x,
         associated_token::authority = treasury,
     )]
@@ -78,15 +77,13 @@ pub struct Swap<'info> {
 
     // Treasury ATA for Token Y
     #[account(
-        init_if_needed,
-        payer = user,
+        mut,
         associated_token::mint = mint_y,
         associated_token::authority = treasury,
     )]
     pub treasury_y: Box<Account<'info, TokenAccount>>,
 
     pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
 

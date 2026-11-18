@@ -11,6 +11,22 @@ fn test_initialize() {
 
     let ix = create_initialize_tx(&accounts, 30);
     send(&mut svm, &[&accounts.payer], ix).expect("initialize should succeed");
+
+    // Treasury ATAs are pre-created at initialize so swaps never init.
+    assert_eq!(
+        token_balance(
+            &svm,
+            &get_associated_token_address(&accounts.treasury, &accounts.mint_x)
+        ),
+        0
+    );
+    assert_eq!(
+        token_balance(
+            &svm,
+            &get_associated_token_address(&accounts.treasury, &accounts.mint_y)
+        ),
+        0
+    );
 }
 
 #[test]
