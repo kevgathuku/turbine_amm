@@ -52,6 +52,7 @@ Verifies:
 - generous maxes are caps, not amounts: approval above the computed share moves nothing extra.
 - Rejects deposits above the slippage bounds, on either side (`SlippageExceeded`).
 - Rejects zero-amount deposits (`InvalidAmount`).
+- Rejects zero maximums on first deposit (`InvalidAmount`).
 - Rejects same mint on both sides (`ConstraintDuplicateMutableAccount`).
 - Rejects deposits into a locked pool (`PoolLocked`).
 

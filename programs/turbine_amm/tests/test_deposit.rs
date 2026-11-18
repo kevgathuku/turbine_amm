@@ -172,3 +172,24 @@ fn test_deposit_generous_max_takes_computed_amounts() {
         LP_MINT + LP_MINT / 2
     );
 }
+
+#[test]
+fn test_deposit_zero_max_on_first_deposit_fails() {
+    let PoolFixture { mut svm, accounts } = setup();
+
+    let init_ix = create_initialize_tx(&accounts, 30);
+    send(&mut svm, &[&accounts.payer], init_ix).expect("initialize should succeed");
+
+    // Zero max on either side mints nothing: no free LP on an empty pool.
+    for (max_x, max_y) in [(0, DEPOSIT_Y), (DEPOSIT_X, 0)] {
+        let deposit_ix = create_deposit_tx(&accounts, LP_MINT, max_x, max_y);
+        let err = send(&mut svm, &[&accounts.payer], deposit_ix).unwrap_err();
+
+        let expected = AmmError::InvalidAmount.to_string();
+        let err_str = format!("{err:?}");
+        assert!(
+            err_str.contains(&expected),
+            "expected {expected}, got: {err_str}"
+        );
+    }
+}

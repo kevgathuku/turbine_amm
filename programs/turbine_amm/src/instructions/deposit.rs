@@ -94,6 +94,8 @@ impl<'info> Deposit<'info> {
 
         let (x, y) =
             if self.mint_lp.supply == 0 && self.vault_x.amount == 0 && self.vault_y.amount == 0 {
+                require_neq!(max_x, 0, AmmError::InvalidAmount);
+                require_neq!(max_y, 0, AmmError::InvalidAmount);
                 (max_x, max_y)
             } else {
                 let amounts = ConstantProduct::xy_deposit_amounts_from_l(
