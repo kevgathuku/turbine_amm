@@ -65,6 +65,7 @@ Verifies:
 - vaults and LP supply shrink proportionally to the burn.
 - Rejects withdrawals below the minimum amounts, on either side (`SlippageExceeded`).
 - Rejects zero-amount withdrawals (`InvalidAmount`).
+- Rejects burns above the LP supply (`InsufficientBalance`).
 - Rejects withdrawals from a locked pool (`PoolLocked`).
 
 ### swap

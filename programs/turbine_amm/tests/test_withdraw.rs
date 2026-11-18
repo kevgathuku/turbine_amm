@@ -89,3 +89,18 @@ fn test_withdraw_slippage_y_exceeded_fails() {
         "expected {expected}, got: {err_str}"
     );
 }
+
+#[test]
+fn test_withdraw_more_than_supply_fails() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let withdraw_ix = create_withdraw_tx(&accounts, u64::MAX, 0, 0);
+    let err = send(&mut svm, &[&accounts.payer], withdraw_ix).unwrap_err();
+
+    let expected = AmmError::InsufficientBalance.to_string();
+    let err_str = format!("{err:?}");
+    assert!(
+        err_str.contains(&expected),
+        "expected {expected}, got: {err_str}"
+    );
+}
