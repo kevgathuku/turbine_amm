@@ -76,6 +76,7 @@ Verifies:
 
 - exact post-swap balances (vaults, user, treasury) against hand-computed math.
 - swaps both directions (X→Y and Y→X), each paying the fee-adjusted amount with the treasury cut on the input side.
+- dust swaps round down cleanly: 1 unit in, nothing out, no treasury transfer.
 - fee stays in the pool except the treasury cut, which lands in the input side's treasury ATA.
 - Rejects swaps below the minimum output, in either direction (`SlippageExceeded`).
 - Rejects zero-amount swaps (`InvalidAmount`).

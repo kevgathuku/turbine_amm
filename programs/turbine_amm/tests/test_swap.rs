@@ -176,3 +176,38 @@ fn test_swap_slippage_y_exceeded_fails() {
         "expected {expected}, got: {err_str}"
     );
 }
+
+// Dust swap: 1 unit in. The fee rounds to a full unit (1 - 0) but the
+// 20% treasury cut rounds to zero, so no treasury transfer happens.
+// a2 = 1 * 9970 / 10000 = 0; y2 = k / (x + 0) = y, so out = 0.
+const DUST_SWAP_IN: u64 = 1;
+
+#[test]
+fn test_swap_dust_amount_succeeds() {
+    let PoolFixture { mut svm, accounts } = setup_initialized_pool();
+
+    let swap_ix = create_swap_tx(&accounts, true, DUST_SWAP_IN, 0);
+    send(&mut svm, &[&accounts.payer], swap_ix).expect("dust swap should succeed");
+
+    // Full unit lands in the vault; nothing comes out; treasury gets nothing.
+    assert_eq!(
+        token_balance(&svm, &accounts.vault_x),
+        DEPOSIT_X + DUST_SWAP_IN
+    );
+    assert_eq!(token_balance(&svm, &accounts.vault_y), DEPOSIT_Y);
+    assert_eq!(
+        token_balance(&svm, &accounts.user_x),
+        USER_MINT_FUNDING - DEPOSIT_X - DUST_SWAP_IN
+    );
+    assert_eq!(
+        token_balance(&svm, &accounts.user_y),
+        USER_MINT_FUNDING - DEPOSIT_Y
+    );
+    assert_eq!(
+        token_balance(
+            &svm,
+            &get_associated_token_address(&accounts.treasury, &accounts.mint_x)
+        ),
+        0
+    );
+}
